@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>声波排水专家</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Slate 900 */
+            color: #e2e8f0; /* Slate 200 */
+            -webkit-tap-highlight-color: transparent;
+            overflow: hidden;
+        }
+
+        /* Mobile Container */
+        .app-container {
+            max-width: 430px;
+            margin: 0 auto;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #0f172a;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        /* Water Wave Animation */
+        .wave-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .wave-circle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(6, 182, 212, 0.3); /* Cyan 500 */
+            opacity: 0;
+        }
+
+        .wave-active .wave-circle {
+            animation: ripple 2s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+        }
+
+        .wave-active .wave-circle:nth-child(2) {
+            animation-delay: 0.5s;
+        }
+
+        .wave-active .wave-circle:nth-child(3) {
+            animation-delay: 1s;
+        }
+
+        @keyframes ripple {
+            0% {
+                width: 100px;
+                height: 100px;
+                opacity: 1;
+                border: 2px solid rgba(6, 182, 212, 0.8);
+            }
+            100% {
+                width: 300px;
+                height: 300px;
+                opacity: 0;
+                border: 0px solid rgba(6, 182, 212, 0);
+            }
+        }
+
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #06b6d4;
+            cursor: pointer;
+            margin-top: -10px;
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #334155;
+            border-radius: 2px;
+        }
+
+        /* Safe Area for Mobile */
+        .safe-pb {
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- Header -->
+    <header class="flex justify-between items-center px-6 py-4 bg-slate-900/90 backdrop-blur-md sticky top-0 z-50">
+        <div class="flex items-center gap-3">
+            <!-- User D Avatar -->
+            <img src="data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3e%3ccircle cx='50' cy='50' r='50' fill='%236366f1'/%3e%3ctext x='50' y='50' dy='.35em' text-anchor='middle' fill='white' font-size='60' font-family='sans-serif' font-weight='bold'%3eD%3c/text%3e%3c/svg%3e" 
+                 alt="Profile" 
+                 class="w-10 h-10 rounded-full border-2 border-slate-700 shadow-sm">
+            <div>
+                <h1 class="text-lg font-bold text-white leading-tight">声波排水专家</h1>
+                <p class="text-xs text-slate-400">Pro 版</p>
+            </div>
+        </div>
+        <!-- Settings button removed -->
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col items-center justify-center px-6 relative overflow-hidden">
+        
+        <!-- Status Text -->
+        <div class="text-center mb-8 z-10">
+            <p id="status-text" class="text-slate-400 text-sm font-medium tracking-wide uppercase">准备就绪</p>
+            <h2 id="freq-display" class="text-4xl font-bold text-white mt-2 font-mono">165 <span class="text-xl text-cyan-400">Hz</span></h2>
+        </div>
+
+        <!-- Main Action Button / Visualizer -->
+        <div class="wave-container mb-12 z-10" id="wave-container">
+            <div class="wave-circle"></div>
+            <div class="wave-circle"></div>
+            <div class="wave-circle"></div>
+            
+            <button id="toggle-btn" class="relative w-40 h-40 rounded-full bg-slate-800 border-4 border-slate-700 shadow-[0_0_30px_rgba(0,0,0,0.3)] flex flex-col items-center justify-center transition-all active:scale-95 hover:border-cyan-500/50 group">
+                <div class="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <i id="btn-icon" class="fa-solid fa-droplet text-4xl text-cyan-400 mb-2 transition-transform duration-300"></i>
+                <span id="btn-text" class="text-sm font-medium text-slate-200">开始排水</span>
+            </button>
+        </div>
+
+        <!-- Controls -->
+        <div class="w-full max-w-xs space-y-6 z-10 bg-slate-800/50 p-5 rounded-2xl border border-slate-700/50 backdrop-blur-sm">
+            <div class="flex justify-between items-center text-sm text-slate-300 mb-2">
+                <span>强度</span>
+                <span class="font-mono text-cyan-400">100%</span>
+            </div>
+            <input type="range" min="100" max="800" value="165" class="w-full" id="freq-slider">
+            
+            <div class="flex justify-between items-center pt-2">
+                <span class="text-xs text-slate-500">低频振动</span>
+                <span class="text-xs text-slate-500">高频除尘</span>
+            </div>
+        </div>
+
+        <!-- Tips Card -->
+        <div class="mt-8 flex items-start gap-3 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl max-w-xs">
+            <i class="fa-solid fa-circle-info text-yellow-500 mt-0.5"></i>
+            <p class="text-xs text-yellow-200/80 leading-relaxed">
+                建议将手机音量调至最大，并将扬声器朝下放置以获得最佳排水效果。
+            </p>
+        </div>
+
+    </main>
+
+    <!-- Bottom Navigation removed -->
+
+</div>
+
+<script>
+    // --- Sound Engine for UI Clicks ---
+    const clickSoundBase64 = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA="; // Placeholder silent fallback, real short pop below
+    // Using a synthetic very short pop sound for UI feedback
+    const popSoundUrl = "data:audio/wav;base64,UklGRl9vT1BXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU"; // Truncated for brevity in thought, generating real one via JS AudioContext is better for "engine"
+
+    // Real Sound Engine Class
+    class SoundEngine {
+        constructor() {
+            this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            this.oscillator = null;
+            this.gainNode = null;
+        }
+
+        playClick() {
+            if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
+            const osc = this.audioCtx.createOscillator();
+            const gain = this.audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(this.audioCtx.destination);
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, this.audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, this.audioCtx.currentTime + 0.1);
+            
+            gain.gain.setValueAtTime(0.1, this.audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.audioCtx.currentTime + 0.1);
+            
+            osc.start();
+            osc.stop(this.audioCtx.currentTime + 0.1);
+        }
+
+        startCleaningTone(frequency) {
+            if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
+            if (this.oscillator) this.stopCleaningTone();
+
+            this.oscillator = this.audioCtx.createOscillator();
+            this.gainNode = this.audioCtx.createGain();
+
+            // Sawtooth wave is often perceived as "buzzier" and better for vibration simulation
+            this.oscillator.type = 'sawtooth'; 
+            this.oscillator.frequency.value = frequency;
+
+            this.oscillator.connect(this.gainNode);
+            this.gainNode.connect(this.audioCtx.destination);
+
+            // Fade in to avoid pop
+            this.gainNode.gain.setValueAtTime(0, this.audioCtx.currentTime);
+            this.gainNode.gain.linearRampToValueAtTime(1, this.audioCtx.currentTime + 0.1);
+
+            this.oscillator.start();
+        }
+
+        stopCleaningTone() {
+            if (this.oscillator) {
+                // Fade out
+                this.gainNode.gain.linearRampToValueAtTime(0, this.audioCtx.currentTime + 0.1);
+                this.oscillator.stop(this.audioCtx.currentTime + 0.1);
+                this.oscillator = null;
+            }
+        }
+
+        updateFrequency(freq) {
+            if (this.oscillator) {
+                this.oscillator.frequency.value = freq;
+            }
+        }
+    }
+
+    const soundEngine = new SoundEngine();
+
+    // --- UI Logic ---
+    const toggleBtn = document.getElementById('toggle-btn');
+    const waveContainer = document.getElementById('wave-container');
+    const btnIcon = document.getElementById('btn-icon');
+    const btnText = document.getElementById('btn-text');
+    const statusText = document.getElementById('status-text');
+    const freqDisplay = document.getElementById('freq-display');
+    const freqSlider = document.getElementById('freq-slider');
+
+    let isCleaning = false;
+    let currentFreq = 165;
+
+    // Attach click sounds to all interactive elements
+    document.querySelectorAll('button, a, input[type=range]').forEach(el => {
+        el.addEventListener('click', () => soundEngine.playClick());
+        // For range slider input changes
+        if(el.tagName === 'INPUT') {
+             el.addEventListener('input', () => {
+                // Optional: subtle tick sound could go here
+             });
+        }
+    });
+
+    toggleBtn.addEventListener('click', () => {
+        isCleaning = !isCleaning;
+        updateState();
+    });
+
+    freqSlider.addEventListener('input', (e) => {
+        currentFreq = e.target.value;
+        freqDisplay.innerHTML = `${currentFreq} <span class="text-xl text-cyan-400">Hz</span>`;
+        if (isCleaning) {
+            soundEngine.updateFrequency(currentFreq);
+        }
+    });
+
+    function updateState() {
+        if (isCleaning) {
+            // Start cleaning
+            soundEngine.startCleaningTone(currentFreq);
+            waveContainer.classList.add('wave-active');
+            
+            // UI Updates
+            btnIcon.classList.remove('fa-droplet');
+            btnIcon.classList.add('fa-stop');
+            btnIcon.classList.add('text-red-400');
+            btnIcon.classList.remove('text-cyan-400');
+            
+            btnText.innerText = "停止";
+            statusText.innerText = "正在排水...";
+            statusText.classList.add('text-cyan-400');
+            statusText.classList.remove('text-slate-400');
+            
+            toggleBtn.classList.add('border-cyan-500');
+            toggleBtn.classList.remove('border-slate-700');
+
+        } else {
+            // Stop cleaning
+            soundEngine.stopCleaningTone();
+            waveContainer.classList.remove('wave-active');
+            
+            // UI Updates
+            btnIcon.classList.add('fa-droplet');
+            btnIcon.classList.remove('fa-stop');
+            btnIcon.classList.remove('text-red-400');
+            btnIcon.classList.add('text-cyan-400');
+            
+            btnText.innerText = "开始排水";
+            statusText.innerText = "准备就绪";
+            statusText.classList.remove('text-cyan-400');
+            statusText.classList.add('text-slate-400');
+            
+            toggleBtn.classList.remove('border-cyan-500');
+            toggleBtn.classList.add('border-slate-700');
+        }
+    }
+
+    // Init Date Check (Just to ensure we are in the right timeline context if needed)
+    console.log("System Date: " + new Date().toISOString().split('T')[0]);
+
+</script>
+</body>
+</html>
